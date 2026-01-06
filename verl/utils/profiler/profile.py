@@ -361,6 +361,33 @@ class TorchMemoryProfiler:
         return self.rank == 0
 
 
+import threading
+from typing import Optional
+import ray
+
+@ray.remote
+class _SharedStateActor:
+    def __init__(self):
+        self.profile_enable: bool = False
+        self.step:int = -1
+        self._lock = threading.Lock()
+    
+    def set_profile_enable(self, value: bool):
+        with self._lock:
+            self.profile_enable = True
+    
+    def get_profile_enable(self) -> bool:
+        with self._lock:
+            return self.profile_enable
+    
+    def set_step(self, value:int):
+        with self._lock:
+            self.step = value
+    
+    def get_step(self) -> int:
+        with self._lock:
+            return self.step
+
 class DistProfilerExtension:
     """An extension class for DistProfiler that provides distributed profiling capabilities.
 
@@ -372,18 +399,54 @@ class DistProfilerExtension:
     Args:
         profiler (DistProfiler): The base distributed profiler instance to extend
     """
+    _ACTOR_NAME = "global_profiler_shared_state"
+    _cached_actor: Optional[ray.actor.ActorHandle] = None
 
     def __init__(self, profiler: DistProfiler):
         self.profiler = profiler
 
     from verl.single_controller.base.decorator import Dispatch, register
 
-    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
-    def start_profile(self, **kwargs) -> None:
-        """Start profiling for the current rank in the current training step."""
-        self.profiler.start(**kwargs)
+    @classmethod
+    def _get_actor(cls) -> ray.actor.ActorHandle:
+        if cls._cached_actor is not None:
+            return cls._cached_actor
 
-    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
-    def stop_profile(self) -> None:
-        """Stop profiling for the current rank in the current training step."""
-        self.profiler.stop()
+        assert ray.is_initialized()
+        
+        try:
+            cls._cached_actor = ray.get_actor(cls._ACTOR_NAME)
+        except ValueError:
+            cls._cached_actor = _SharedStateActor.options(
+                name=cls._ACTOR_NAME,
+                lifetime="detached"
+            ).remote()
+        return cls._cached_actor
+    
+    @classmethod
+    def set_profile_enable(cls, value: bool) -> None:
+        actor = cls._get_actor()
+        ray.get(actor.set_profile_enable.remote(value))
+
+    @classmethod
+    def get_profile_enable(cls) -> bool:
+        actor = cls._get_actor()
+        result = ray.get(actor.get_profile_enable.remote())
+        return result
+        
+    @classmethod
+    def set_step(cls, value: int) -> None:
+        actor = cls._get_actor()
+        ray.get(actor.set_step.remote(value))
+
+    @classmethod
+    def get_step(cls) -> bool:
+        actor = cls._get_actor()
+        result = ray.get(actor.get_step.remote())
+        return result
+    
+    @classmethod
+    def cleanup(cls):
+        if cls._cached_actor is not None:
+            ray.kill(cls._cached_actor)
+            cls._cached_actor = None

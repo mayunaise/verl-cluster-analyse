@@ -1062,28 +1062,6 @@ class RayPPOTrainer:
         else:
             print(f"Warning: No dataloader state found at {dataloader_local_path}, will start from scratch")
 
-    def _start_profiling(self, do_profile: bool) -> None:
-        """Start profiling for all worker groups if profiling is enabled."""
-        if do_profile:
-            self.actor_rollout_wg.start_profile(role="e2e", profile_step=self.global_steps)
-            if self.use_reference_policy:
-                self.ref_policy_wg.start_profile(profile_step=self.global_steps)
-            if self.use_critic:
-                self.critic_wg.start_profile(profile_step=self.global_steps)
-            if self.use_rm and not self.use_reward_loop:
-                self.rm_wg.start_profile(profile_step=self.global_steps)
-
-    def _stop_profiling(self, do_profile: bool) -> None:
-        """Stop profiling for all worker groups if profiling is enabled."""
-        if do_profile:
-            self.actor_rollout_wg.stop_profile()
-            if self.use_reference_policy:
-                self.ref_policy_wg.stop_profile()
-            if self.use_critic:
-                self.critic_wg.stop_profile()
-            if self.use_rm and not self.use_reward_loop:
-                self.rm_wg.stop_profile()
-
     def _get_dp_size(self, worker_group, role: str) -> int:
         """Get data parallel size from worker group dispatch info.
 
@@ -1364,13 +1342,16 @@ class RayPPOTrainer:
                     self.actor_rollout_wg.async_calls_finalize_fn_exec(blocking=False)
                 metrics = {}
                 timing_raw = {}
+                # update profiling runtime info
+                from verl.utils.profiler import DistProfilerExtension
+                do_profile = (
+                    not prev_step_profile and curr_step_profile
+                    if self.config.global_profiler.profile_continuous_steps
+                    else curr_step_profile
+                )
+                DistProfilerExtension.set_profile_enable(do_profile)
+                DistProfilerExtension.set_step(self.global_steps)
 
-                with marked_timer("start_profile", timing_raw):
-                    self._start_profiling(
-                        not prev_step_profile and curr_step_profile
-                        if self.config.global_profiler.profile_continuous_steps
-                        else curr_step_profile
-                    )
                 batch: DataProto = DataProto.from_single_dict(batch_dict)
                 batch.meta_info["temperature"] = self.config.actor_rollout_ref.rollout.temperature
 
@@ -1624,19 +1605,13 @@ class RayPPOTrainer:
                     with marked_timer("save_checkpoint", timing_raw, color="green"):
                         self._save_checkpoint()
 
-                with marked_timer("stop_profile", timing_raw):
-                    next_step_profile = (
-                        self.global_steps + 1 in self.config.global_profiler.steps
-                        if self.config.global_profiler.steps is not None
-                        else False
-                    )
-                    self._stop_profiling(
-                        curr_step_profile and not next_step_profile
-                        if self.config.global_profiler.profile_continuous_steps
-                        else curr_step_profile
-                    )
-                    prev_step_profile = curr_step_profile
-                    curr_step_profile = next_step_profile
+                next_step_profile = (
+                    self.global_steps + 1 in self.config.global_profiler.steps
+                    if self.config.global_profiler.steps is not None
+                    else False
+                )
+                prev_step_profile = curr_step_profile
+                curr_step_profile = next_step_profile
 
                 steps_duration = timing_raw["step"]
                 self.max_steps_duration = max(self.max_steps_duration, steps_duration)

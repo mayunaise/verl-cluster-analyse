@@ -181,7 +181,6 @@ class NPUProfiler(DistProfiler):
         self.enable: bool = config.enable
         if not config.enable:
             return
-        self.this_step: bool = False
         self.discrete: bool = tool_config.discrete
         self.this_rank: bool = False
         self.profile_npu = None
@@ -195,29 +194,10 @@ class NPUProfiler(DistProfiler):
             self.this_rank = rank in config.ranks
 
     def start(self, **kwargs):
-        role, profile_step = kwargs.get("role", None), kwargs.get("profile_step", None)
-        profile_step = str(profile_step) if profile_step is not None else None
-        if self.enable and self.this_rank:
-            self.this_step = True
-            if not self.discrete and NPUProfiler._define_count == 0:
-                self.profile_npu = get_npu_profiler(
-                    contents=self.profile_contents,
-                    profile_level=self.profile_level,
-                    profile_save_path=self.profile_save_path,
-                    analysis=self.analysis,
-                    role=role,
-                    profile_step=profile_step,
-                )
-                self.profile_npu.start()
-                NPUProfiler._define_count += 1
+        pass
 
     def stop(self):
-        if self.enable and self.this_rank:
-            self.this_step = False
-            if not self.discrete and NPUProfiler._define_count == 1:
-                self.profile_npu.step()
-                self.profile_npu.stop()
-                NPUProfiler._define_count -= 1
+        pass
 
     def annotate(self, message: Optional[str] = None, role: Optional[str] = None, **kwargs_outer) -> Callable:
         """Decorate a Worker member function to profile the current rank in the current training step.
@@ -240,7 +220,9 @@ class NPUProfiler(DistProfiler):
 
                 profile_name = message or func.__name__
                 discrete_mode = self.discrete
-                profile_enable = self.this_step and self.enable
+                from verl.utils.profiler import DistProfilerExtension
+                this_step_enable = DistProfilerExtension.get_profile_enable()
+                profile_enable = this_step_enable and self.enable
 
                 if not profile_enable:
                     return func(*args, **kwargs_inner)
