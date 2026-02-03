@@ -107,19 +107,26 @@ Megatron后端融合算子使用方法
 
 Megatron 的融合算子集成在 MindSpeed 中，需要添加特定参数开启: 
 
-1. **Flash Attention（必须开启）:** \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_flash_attn=True`` \ ``++actor_rollout_ref.ref.megatron.override_transformer_config.use_flash_attn=True``
+1. **Flash Attention（必须开启）:** 
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_flash_attn=True`` \ ``++actor_rollout_ref.ref.megatron.override_transformer_config.use_flash_attn=True``
 
-2. **RotaryMul:**  \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.apply_rope_fusion=True`` \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rotary_pos_emb=True``
+2. **RotaryMul:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.apply_rope_fusion=True`` \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rotary_pos_emb=True``
 
-3. **RMSNorm:**  \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rmsnorm=True``
+3. **RMSNorm:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rmsnorm=True``
 
-4. **GroupMatMul:**  \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.moe_grouped_gemm=True``
+4. **GroupMatMul:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.moe_grouped_gemm=True``
 
-5. **Swiglu:**  \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_swiglu=True``
+5. **Swiglu:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_swiglu=True``
 
-6. **Permute/Unpermute:** \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.fused_permute_unpermute=True``
+6. **Permute/Unpermute:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.fused_permute_unpermute=True``
 
-7. **MC2:**  \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_ascend_mc2``
+7. **MC2:**
+    ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_ascend_mc2``
 
 昇腾通用配置
 --------------------------
