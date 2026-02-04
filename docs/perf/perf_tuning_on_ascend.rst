@@ -251,4 +251,8 @@ TP、PP、EP、ETP和 Megatron 使用方式一样，CP 和 SP 在 NPU 上开启�
 Megatron-distributed optimizer
 **********************************
 
-在面对较大尺寸模型时，通常需要将优化器分片到一个 DP 域内的每张卡上来节省显存。Megatron 后端下在 NPU 上开启分布式优化器: \ ``+actor_rollout_ref.actor.megatron.override_transformer_config.use_distributed_optimizer=True``
+在面对较大尺寸模型时，通常需要将优化器分片到一个 DP 域内的每张卡上来节省显存。Megatron 后端下在 NPU 上开启分布式优化器:
+
+::
+
+    +actor_rollout_ref.actor.megatron.override_transformer_config.use_distributed_optimizer=True
