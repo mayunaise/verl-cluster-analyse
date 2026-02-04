@@ -136,7 +136,7 @@ Megatron 的融合算子集成在 MindSpeed 中，需要添加特定参数开启
 
 通过 ``TASK_QUEUE_ENABLE`` 可配置 task_queue 算子下发队列优化等级，默认为 Level 1 优化。
 
-.. image :: https://github.com/ZLiao097/verl-data/blob/perf_tuning/images/ascend/perf_tuning_task_queue.png
+.. image :: https://github.com/verl-project/verl-data/blob/main/images/ascend/perf_tuning_task_queue.png
     :width: 500px
 
 Level 0 : 不开启下发流水优化。
