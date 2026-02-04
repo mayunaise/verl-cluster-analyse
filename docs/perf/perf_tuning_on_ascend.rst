@@ -176,15 +176,15 @@ FSDP
 **********************************
 
 .. csv-table::
-   :header: "FSDP", "DeepSpeed", "说明"
-   :widths: 30, 15, 60
+   :header: "FSDP", "说明"
+   :widths: 30, 60
 
-   "FSDP","DeepSpeed","说明"
-   "/","Zero-1","仅切分优化器"
-   SHARD_GRAD_OP,Zero-2,切分梯度和优化器
-   "2D device_mesh+ HYBRID_SHARD","MiCS","又称HSDP（FSDP+DDP）例如device_mesh=[2,8], 每8个rank为一个FSDP组，组内进行FSDP切分，共有两个组，两个组间进行DDP，通过allreduce同步梯度。"
-   "2D device_mesh+ HYBRID_SHARD_ZERO2","/","HSDP的Zero2版本"
-   NO_SHARD,/,DDP
+   "/","仅切分优化器(Zero-1)"
+   SHARD_GRAD_OP,切分梯度和优化器(Zero-2)
+   "HYBRID_SHARD","切分权重、梯度和优化器(Zero-3)"
+   "2D device_mesh+HYBRID_SHARD","又称HSDP（FSDP+DDP）例如device_mesh=[2,8], 每8个rank为一个FSDP组，组内进行FSDP切分，共有两个组，两个组间进行DDP，通过allreduce同步梯度。"
+   "2D device_mesh+HYBRID_SHARD_ZERO2","HSDP的Zero2版本"
+   NO_SHARD,DDP
 
 FSDP 不支持 Zero-1， VeRL中会根据卡数和 ``actor_rollout_ref.actor.fsdp_config.fsdp_size``  来决定 device mesh 的取值，默认使用 Zero-3 进行切分；如果模型较小（建议小于 7B 时），可以通过控制参数 ``actor_rollout_ref.actor.fsdp_config.reshard_after_forward`` 为 ``True`` 在 FSDP/FSDP2 上使用 Zero-2 来优化性能.
 
